@@ -1,91 +1,93 @@
 from imports import *
+from models import PointModel
+from PIL import Image
 
 
 @typed
-def dataset_features(num_frames: int, num_groups: int, num_points: int, side: int):
-    dataset = np.empty((num_frames, num_groups, num_points, 5))
-    group_color = np.random.random((num_groups, 3))
-    color_speed = np.random.randn(num_groups, 3) / 100
-    center_x = 0.5 * side
-    center_y = 0.5 * side
-    for frame in range(num_frames):
-        group_color += color_speed
-
-        for group in range(num_groups):
-            group_angle = 3 * 2 * np.pi * (frame / num_frames + group / num_groups)
-            group_radius = 0.3 * side
-            for point in range(num_points):
-                point_angle = (
-                    2
-                    * np.pi
-                    * (
-                        frame / num_frames * (1 + 3 * point / num_points)
-                        + point / num_points
-                    )
-                )
-                point_radius = 0.1 * side
-                x = (
-                    center_x
-                    + group_radius * np.cos(group_angle)
-                    + point_radius * np.cos(point_angle)
-                )
-                y = (
-                    center_y
-                    + group_radius * np.sin(group_angle)
-                    + point_radius * np.sin(point_angle)
-                )
-
-                dataset[frame, group, point, 0] = x
-                dataset[frame, group, point, 1] = y
-                dataset[frame, group, point, 2:] = (np.sin(group_color[group]) + 1) / 2
-
-    return dataset
+def read_picture(filename: str) -> Float[TT, "h w 3"]:
+    arr = t.tensor(np.array(Image.open(filename))[..., :3], dtype=t.float)
+    return arr / 255
 
 
-@typed
-def dataset_pixels(num_frames: int, num_groups: int, num_points: int, side: int, radius: float):
-    features = dataset_features(num_frames, num_groups, num_points, side)
-    pixels = np.ones((num_frames, side, side, 3))
-    for frame in range(num_frames):
-        for group in range(num_groups):
-            for point in range(num_points):
-                x, y = features[frame, group, point, 0], features[frame, group, point, 1]
-                dist = np.fromfunction(lambda i, j: np.hypot(i - x, j - y) / radius, (side, side))
-                gauss = ein.rearrange(np.exp(-dist**2), "x y -> x y 1")
-                color = ein.rearrange(features[frame, group, point, 2:], "c -> 1 1 c")
+class ImageStore:
+    @typed
+    def __init__(self):
+        self.images = []
+        self.mask_color = t.tensor([0, 1, 0], dtype=t.float)
 
-                pixels[frame] = gauss * color + (1 - gauss) * pixels[frame]
-    return pixels
+    @typed
+    def load(self, filename: str) -> None:
+        self.images.append(read_picture(filename))
 
-
-def render_images(images):
-    fig, ax = plt.subplots()
-    current_image = 0
-    im = ax.imshow(images[current_image])
-    def update_image(index):
-        im.set_data(images[index])
-        fig.canvas.draw()
-
-    # Function to handle keypress events
-    def on_key(event):
-        nonlocal current_image
-        if event.key == "right":
-            # Move to the next image
-            current_image = (current_image + 1) % len(images)
-            update_image(current_image)
-        elif event.key == "left":
-            # Move to the previous image
-            current_image = (current_image - 1) % len(images)
-            update_image(current_image)
-
-    # Connect the keypress event handler
-    fig.canvas.mpl_connect("key_press_event", on_key)
-
-    plt.show()
+    @typed
+    def plot(self, index: int) -> None:
+        plt.subplot(1, 2, 1)
+        plt.imshow(self.images[index])
+        plt.subplot(1, 2, 2)
+        masked = (self.images[index] == self.mask_color).all(dim=2).float()
+        plt.set_cmap("gray")
+        plt.imshow(masked)
+        plt.tight_layout()
+        plt.show()
 
 
-images = dataset_pixels(600, 5, 5, 64, 2.0)
-render_images(images)
+def trigonometric_features(x: float, k: int) -> Float[TT, "k"]:
+    assert 0 <= x <= 1
+    r = 2 ** t.arange(k)
+    return t.cat(
+        [t.tensor([x]), t.cos(2 * t.pi * r * x), t.sin(2 * t.pi * r * x)], dim=0
+    )
 
-import imageio
-imageio.mimwrite("output.gif", images, format="GIF", duration=0.1)
+
+class PointDataset(ImageStore, t.utils.data.Dataset):
+    @typed
+    def __init__(self, id_bits: int):
+        super().__init__()
+        self.sizes: list[int] = []
+        self.max_id = 2**id_bits
+        self.id_features = id_bits
+        self.image_features = 6
+
+    @typed
+    def load(self, filename: str) -> None:
+        super().load(filename)
+        shape = self.images[-1].shape
+        self.sizes.append(shape[0] * shape[1])
+
+    @typed
+    def __len__(self) -> int:
+        return sum(self.sizes)
+
+    @typed
+    def get_features(self, id: int, i: int, j: int) -> Float[TT, "features"]:
+        id_features = trigonometric_features(id / self.max_id, self.id_features)
+        max_i, max_j = self.images[id].shape[:2]
+        i_features = trigonometric_features(i / max_i, self.image_features)
+        j_features = trigonometric_features(j / max_j, self.image_features)
+        return t.cat([id_features, i_features, j_features], dim=0)
+
+    @typed
+    def __getitem__(self, index: int) -> tuple[Float[TT, "features"], Float[TT, "3"], Float[TT, ""]]:
+        id = 0
+        while index >= self.sizes[id]:
+            index -= self.sizes[id]
+            id += 1
+        shape = self.images[id].shape
+        i = index // shape[1]
+        j = index % shape[1]
+        label = self.images[id][i, j]
+        masked = (label == self.mask_color).all().float()
+        return self.get_features(id, i, j), label, 1 - masked
+
+    @typed
+    def predictions(self, model, id: int) -> Float[TT, "h w 3"]:
+        shape = self.images[id].shape
+        x = [
+            self.get_features(id, i, j)
+            for i in range(shape[0])
+            for j in range(shape[1])
+        ]
+        y = model(t.stack(x)).detach().cpu().reshape(shape).clip(0, 1)
+        plt.imshow(y)
+        plt.show()
+        return y
