@@ -1,0 +1,27 @@
+schema: '2.0'
+stages:
+  train:
+    cmd: python3 train.py
+    deps:
+    - path: models.py
+      hash: md5
+      md5: 4318d577bce4a8ff20e807bcb7f12d52
+      size: 6462
+    - path: optimizer.py
+      hash: md5
+      md5: f1f16972d6f5762060943b98c3d5cab9
+      size: 3456
+    - path: params.yaml
+      hash: md5
+      md5: f2e6cda0b9d6203b91bc485ee7041645
+      size: 79
+    - path: train.py
+      hash: md5
+      md5: 088d6f0e20d3a812560f0ac172179d79
+      size: 1060
+    outs:
+    - path: dvclive
+      hash: md5
+      md5: 1e41527c8073465dc8835d89513668df.dir
+      size: 108308
+      nfiles: 5
