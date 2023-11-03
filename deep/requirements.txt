@@ -1,0 +1,14 @@
+beartype>=0.14.1
+einops>=0.7.0
+imageio>=2.22.4
+jaxtyping>=0.2.23
+lightning>=2.0.0
+matplotlib>=3.5.0
+numpy>=1.21.5
+pandas>=2.1.2
+Pillow>=9.0.1
+Pillow>=10.1.0
+plotly>=5.17.0
+PyYAML>=5.4.1
+torch>=2.1.0
+torchvision>=0.16.0
