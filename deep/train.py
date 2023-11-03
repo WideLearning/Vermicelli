@@ -1,6 +1,6 @@
 from imports import *
-from dvclive import Live  # type: ignore
-from dvclive.lightning import DVCLiveLogger  # type: ignore
+from dvclive import Live
+from dvclive.lightning import DVCLiveLogger
 from data import PointDataset
 from models import ResMLP, BiResMLP, PointModel
 import yaml
