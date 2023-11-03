@@ -17,3 +17,7 @@ stages:
     - train.py
     outs:
     - dvclive
+artifacts:
+  best:
+    path: dvclive/artifacts/epoch=79-step=81920.ckpt
+    type: model

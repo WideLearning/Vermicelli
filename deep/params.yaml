@@ -1,6 +1,6 @@
 hidden_size: 64
 k: 10
 lr: 0.001
-max_epochs: 1
+max_epochs: 100
 model_type: ResMLP
 n_layers: 10
