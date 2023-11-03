@@ -13,15 +13,15 @@ stages:
       size: 3456
     - path: params.yaml
       hash: md5
-      md5: f2e6cda0b9d6203b91bc485ee7041645
-      size: 79
+      md5: d7409fb6634ec82968d24dbd0b3dd0b7
+      size: 78
     - path: train.py
       hash: md5
-      md5: 088d6f0e20d3a812560f0ac172179d79
-      size: 1060
+      md5: 6af38e54b765f7b68b9d8589807daa3e
+      size: 1028
     outs:
     - path: dvclive
       hash: md5
-      md5: 1e41527c8073465dc8835d89513668df.dir
-      size: 108308
+      md5: 1e95d0b10ca11c040167f20c72a4aca9.dir
+      size: 75499
       nfiles: 5
