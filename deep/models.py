@@ -177,7 +177,7 @@ class PointModel(pl.LightningModule):
 
         image = make_grid(
             [
-                self.store.predictions(self.model, i).permute(2, 0, 1)
+                self.store.predictions(self, i).permute(2, 0, 1)
                 for i in range(len(self.store.sizes))
             ]
         )
