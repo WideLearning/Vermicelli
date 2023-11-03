@@ -3,6 +3,7 @@ from optimizer import LocalSWA
 from math import sqrt
 from torchvision.utils import make_grid
 from data import PointDataset
+from PIL.Image import fromarray
 
 
 @typed
@@ -111,7 +112,7 @@ class DenseMLP(MLP):
         return x
 
 
-class MLPModel(pl.LightningModule):
+class PointModel(pl.LightningModule):
     @typed
     def __init__(
         self,
@@ -123,7 +124,7 @@ class MLPModel(pl.LightningModule):
         **kwargs
     ):
         super().__init__()
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore="store")
         self.store = store
         model_constructor = {
             "MLP": MLP,
@@ -176,11 +177,13 @@ class MLPModel(pl.LightningModule):
 
         image = make_grid(
             [
-                self.store.predictions(self.model, i)
+                self.store.predictions(self.model, i).permute(2, 0, 1)
                 for i in range(len(self.store.sizes))
             ]
         )
-        self.logger.log_image("predictions", image)
+        bytes = image.permute(1, 2, 0).mul(255).byte().numpy()
+        step = self.logger.experiment.step
+        self.logger.experiment.log_image(f"predictions/{step}.png", fromarray(bytes))
 
     @typed
     def validation_step(self, batch: list[TT], batch_idx: int) -> None:

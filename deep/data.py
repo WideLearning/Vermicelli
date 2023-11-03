@@ -1,5 +1,4 @@
 from imports import *
-from models import PointModel
 from PIL import Image
 
 
@@ -88,6 +87,4 @@ class PointDataset(ImageStore, t.utils.data.Dataset):
             for j in range(shape[1])
         ]
         y = model(t.stack(x)).detach().cpu().reshape(shape).clip(0, 1)
-        plt.imshow(y)
-        plt.show()
         return y

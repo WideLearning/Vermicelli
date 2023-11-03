@@ -1,0 +1,23 @@
+params:
+- params.yaml
+- dvclive/params.yaml
+plots:
+- dvclive/plots/metrics:
+    x: step
+- dvclive/plots/images
+metrics:
+- dvclive/metrics.json
+stages:
+  train:
+    cmd: python3 train.py
+    deps:
+    - models.py
+    - optimizer.py
+    - params.yaml
+    - train.py
+    outs:
+    - dvclive
+artifacts:
+  best:
+    path: dvclive/artifacts/epoch=9-step=10240.ckpt
+    type: model
