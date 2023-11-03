@@ -81,10 +81,11 @@ class PointDataset(ImageStore, t.utils.data.Dataset):
     @typed
     def predictions(self, model, id: int) -> Float[TT, "h w 3"]:
         shape = self.images[id].shape
-        x = [
+        x_list = [
             self.get_features(id, i, j)
             for i in range(shape[0])
             for j in range(shape[1])
         ]
-        y = model(t.stack(x)).detach().cpu().reshape(shape).clip(0, 1)
+        x = t.stack(x_list).to(model.device)
+        y = model(x).detach().cpu().reshape(shape).clip(0, 1)
         return y
